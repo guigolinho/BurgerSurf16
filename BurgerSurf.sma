@@ -7,8 +7,9 @@
 #include <hamsandwich>
 #include <xs>
 
-#define MAX_CHECKPOINTS 5 // Store up to 5 checkpoints
+#define MAX_CHECKPOINTS 5
 #define SpeedometerFREQ 0.05
+
 
 new const Float: VEC_DUCK_HULL_MIN[3] = {-16.0, -16.0, -18.0};
 new const Float: VEC_DUCK_HULL_MAX[3] = {16.0, 16.0, 32.0};
@@ -19,19 +20,20 @@ new const Float: VEC_NULL[3] = { 0.0, 0.0, 0.0};
 new bool: plrSpeed[33]
 
 new bool: g_bHasCheckpoint[33];
-new g_CheckpointCount[33]; // Track how many checkpoints saved
+new g_CheckpointCount[33]; 
 new totalCPCount[33];
 new totalGCCount[33];
 new Float: g_bCheckpointTimer[33][MAX_CHECKPOINTS];
 new bool: g_timerstarted[33][MAX_CHECKPOINTS];
 
-new Float: g_SpawnPosition[33][3]; // Array to hold the spawn position for each player
+new Float: g_SpawnPosition[33][3];
 
 new Float: g_bCheckpointOrigin[33][MAX_CHECKPOINTS][3];
 new Float: g_bCheckpointAngle[33][MAX_CHECKPOINTS][3];
 new Float: g_bCheckpointVelocity[33][MAX_CHECKPOINTS][3];
-new Float: g_bCheckpointGravity[33][MAX_CHECKPOINTS]; // Only store gravity for one axis
+new Float: g_bCheckpointGravity[33][MAX_CHECKPOINTS]; 
 
+new Float:g_HookDirection[33][3];
 new surf_hook_speed
 
 new Float: timer_time[33];
@@ -47,9 +49,9 @@ public plugin_init() {
     register_clcmd("sg_cp", "SaveCheckpoint");
     register_clcmd("sg_gc", "fwTeleport");
     register_clcmd("say /lastcp", "RemoveCheckpoint");
-    register_clcmd("say /setstart", "setstart"); // Register the command to set the spawn position
-    register_clcmd("say /start", "Gostart"); // Register the command to teleport to the spawn position
-    register_clcmd("say /resetcounts", "reset_counts"); // Register the reset counts command
+    register_clcmd("say /setstart", "setstart");
+    register_clcmd("say /start", "Gostart");
+    register_clcmd("say /resetcounts", "reset_counts");
     register_clcmd("say /usp", "give_usp_command")
     register_clcmd("say /god", "surf_godmode");
     register_clcmd("say /nc", "surf_noclip");
@@ -59,13 +61,13 @@ public plugin_init() {
     register_clcmd("say /t", "SwitchToT");
     register_clcmd("say /spec", "SwitchToSpec");
     register_clcmd("say /speed", "toggleSpeed");
-    register_clcmd("say /commands", "ShowCommands"); // Players can type /commands to see the list
+    register_clcmd("say /commands", "ShowCommands");
 
     surf_hook_speed = register_cvar("surf_hookspeed", "1000.0")
     showspeed = register_cvar("showspeed", "1")
     color = register_cvar("speed_colors", "255 255 255")
 
-    set_task(0.2, "timer_task", 2000, "", 0, "b"); //timer
+    set_task(0.2, "timer_task", 2000, "", 0, "b");
     RegisterHam(Ham_Use, "func_button", "fwdUse", 0);
 
     RegisterHam(Ham_Spawn, "player", "OnPlayerSpawn", 1);
@@ -147,17 +149,16 @@ public ShowCommands(id) {
 
 public client_connect(id) {
     g_bHasCheckpoint[id] = false;
-    g_CheckpointCount[id] = 0; // Initialize checkpoint count
+    g_CheckpointCount[id] = 0; 
     totalCPCount[id] = 0;
     totalGCCount[id] = 0;
 }
 
 public client_putinserver(id) {
-    pev(id, pev_origin, g_SpawnPosition[id]); //for /spawn
-    plrSpeed[id] = showspeed > 0 ? true : false //for Speedometer
+    pev(id, pev_origin, g_SpawnPosition[id]); 
+    plrSpeed[id] = showspeed > 0 ? true : false 
 }
 
-// Command to save the player's spawn position
 public setstart(id) {
     if (!is_user_alive(id)) {
         set_hudmessage(190, 190, 190, -1.0, 0.65, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -165,7 +166,6 @@ public setstart(id) {
         return PLUGIN_HANDLED;
     }
 
-    // Save the player's current position as the spawn position
     pev(id, pev_origin, g_SpawnPosition[id]);
     set_hudmessage(190, 190, 190, -1.0, 0.65, 0, 0.0, 2.0, 0.1, 0.2, 3);
     show_hudmessage(id, "Spawn position set!");
@@ -179,7 +179,6 @@ public Gostart(id) {
         return PLUGIN_HANDLED;
     }
 
-    // Teleport the player to their saved spawn position
     set_pev(id, pev_origin, g_SpawnPosition[id]);
     set_pev(id, pev_velocity, VEC_NULL);
     set_pev(id, pev_basevelocity, VEC_NULL);
@@ -188,7 +187,6 @@ public Gostart(id) {
     return PLUGIN_HANDLED;
 }
 
-// Save a checkpoint
 public SaveCheckpoint(id) {
     if (!is_user_alive(id)) {
         set_hudmessage(190, 190, 190, -1.0, 0.25, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -198,13 +196,11 @@ public SaveCheckpoint(id) {
 
     new index = g_CheckpointCount[id] % MAX_CHECKPOINTS;
 
-    // Save the player's position, angles, velocity, gravity, and timer
     pev(id, pev_origin, g_bCheckpointOrigin[id][index]);
     pev(id, pev_v_angle, g_bCheckpointAngle[id][index]);
     pev(id, pev_gravity, g_bCheckpointGravity[id]);
     pev(id, pev_velocity, g_bCheckpointVelocity[id][index]);
 
-    // Store the timer value only if the timer is currently running
     if (timer_started[id]) {
         g_bCheckpointTimer[id][index] = get_gametime() - timer_time[id];
         g_timerstarted[id][index] = true;
@@ -222,7 +218,6 @@ public SaveCheckpoint(id) {
     return PLUGIN_HANDLED;
 }
 
-// Teleport the player to the latest checkpoint
 public fwTeleport(id) {
     if (!is_user_alive(id)) {
         set_hudmessage(190, 190, 190, -1.0, 0.25, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -236,7 +231,6 @@ public fwTeleport(id) {
         return PLUGIN_HANDLED;
     }
 
-    // Calculate the latest checkpoint index
     new latestIndex = (g_CheckpointCount[id] - 1) % MAX_CHECKPOINTS;
 
     LoadCheckpoint(id, latestIndex);
@@ -244,11 +238,9 @@ public fwTeleport(id) {
     return PLUGIN_HANDLED;
 }
 
-// Load the specified checkpoint
 public LoadCheckpoint(id, index) {
     set_checkpoint(id, g_bCheckpointOrigin[id][index], g_bCheckpointAngle[id][index], g_bCheckpointVelocity[id][index]);
 
-    // Restore the timer value only if a valid time was saved
     if (g_timerstarted[id][index] == true) {
         timer_time[id] = get_gametime() - g_bCheckpointTimer[id][index];
     } else {
@@ -260,7 +252,6 @@ public LoadCheckpoint(id, index) {
     show_hudmessage(id, "CP %d | GC %d", totalCPCount[id], totalGCCount[id]);
 }
 
-// Remove the latest checkpoint and restore the previous one
 public RemoveCheckpoint(id) {
     if (g_CheckpointCount[id] <= 0) {
         set_hudmessage(190, 190, 190, -1.0, 0.25, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -268,11 +259,9 @@ public RemoveCheckpoint(id) {
         return PLUGIN_HANDLED;
     }
 
-    // Decrease the checkpoint count and calculate the new latest checkpoint
     g_CheckpointCount[id]--;
     new latestIndex = (g_CheckpointCount[id] - 1) % MAX_CHECKPOINTS;
 
-    // If no checkpoints are left, disable the checkpoint system for the player
     if (g_CheckpointCount[id] <= 0) {
         g_bHasCheckpoint[id] = false;
         set_hudmessage(190, 190, 190, -1.0, 0.25, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -286,38 +275,31 @@ public RemoveCheckpoint(id) {
     return PLUGIN_HANDLED;
 }
 
-public reset_counts(id) {
-    // Reset the total checkpoint and go to checkpoint counts for the player
+public reset_counts(id) { 
     totalCPCount[id] = 0;
     totalGCCount[id] = 0;
 
-    // Clear all checkpoint data
-    g_CheckpointCount[id] = 0; // Reset checkpoint count
-    g_bHasCheckpoint[id] = false; // Mark that the player has no checkpoints
+    g_CheckpointCount[id] = 0; 
+    g_bHasCheckpoint[id] = false;
 
-    //Clear time data
     timer_started[id] = false;
     timer_time[id] = 0.0;
 
-    // Optionally, clear the checkpoint arrays if necessary
     for (new i = 0; i < MAX_CHECKPOINTS; i++) {
-        // This can be done if needed, otherwise, the arrays will just hold invalid data
         for (new j = 0; j < 3; j++) {
             g_bCheckpointOrigin[id][i][j] = 0.0;
             g_bCheckpointAngle[id][i][j] = 0.0;
             g_bCheckpointVelocity[id][i][j] = 0.0;
         }
-        g_bCheckpointGravity[id][i] = 0.0; // Reset gravity as well if used
+        g_bCheckpointGravity[id][i] = 0.0;
     }
 
-    // Provide feedback to the player
     set_hudmessage(190, 190, 190, -1.0, 0.65, 0, 0.0, 2.0, 0.1, 0.2, 3);
     show_hudmessage(id, "Checkpoint data and counts have been reset!");
 
     return PLUGIN_HANDLED;
 }
 
-// Set player's position, velocity, and angles
 set_checkpoint(id, Float: flOrigin[3], Float: flAngles[3], Float: flVelocity[3]) {
     new iFlags = pev(id, pev_flags);
     iFlags &= ~FL_BASEVELOCITY;
@@ -348,14 +330,10 @@ public give_usp_command(id) {
         return PLUGIN_HANDLED;
     }
 
-    // Strip all weapons
     strip_user_weapons(id);
 
-    // Give knife and USP with maximum ammo
     give_item(id, "weapon_knife");
     give_item(id, "weapon_usp");
-
-    // Set maximum USP ammo
     cs_set_user_bpammo(id, CSW_USP, 120);
 
     set_hudmessage(190, 190, 190, -1.0, 0.65, 0, 0.0, 2.0, 0.1, 0.2, 3);
@@ -367,7 +345,6 @@ public give_usp_command(id) {
 // ============================ Godmode/Noclip ==============================================================
 
 public surf_godmode(id) {
-    // Give godmode to the player issuing the command
     new admin_name[33]
     get_user_name(id, admin_name, 31)
 
@@ -392,7 +369,6 @@ public OnPlayerSpawn(id) {
 }
 
 public surf_noclip(id) {
-    // Give noclip to the player issuing the command
     new admin_name[33]
     get_user_name(id, admin_name, 31)
 
@@ -409,30 +385,32 @@ public surf_noclip(id) {
 // ============================ Hook ==============================================================
 
 public hook_on(id) {
-    hook_task(id)
-	set_task(0.1, "hook_task", id, "", 0, "ab")
+    if (!is_user_alive(id)) return PLUGIN_HANDLED;
+	
+    VelocityByAim(id, get_pcvar_num(surf_hook_speed), g_HookDirection[id]);
+    hook_task(id);
+    set_task(0.1, "hook_task", id, "", 0, "ab");
 
-    return PLUGIN_HANDLED
+    return PLUGIN_HANDLED;
 }
 
 public hook_off(id) {
-	if(task_exists(id))
-		remove_task(id)
-	return PLUGIN_HANDLED
+    if (task_exists(id))
+        remove_task(id);
+
+    g_HookDirection[id][0] = 0.0;
+    g_HookDirection[id][1] = 0.0;
+    g_HookDirection[id][2] = 0.0;
+
+    return PLUGIN_HANDLED;
 }
 
 public hook_task(id) {
-    // Check if the player is connected and alive
     if (!is_user_connected(id) || !is_user_alive(id)) {
         return;
     }
-	
-    // Create the velocity vector
-    new Float:Hookvelocity[3];
-    VelocityByAim(id, get_pcvar_num(surf_hook_speed), Hookvelocity)
 
-    // Set the player's velocity based on the 3D angles
-    set_pev(id, pev_velocity, Hookvelocity)
+    set_pev(id, pev_velocity, g_HookDirection[id]);
 }
 
 
@@ -473,7 +451,7 @@ public fwdUse(ent, id) {
     pev(ent, pev_target, szTarget, 31);
 
     if (TrieKeyExists(g_tStarts, szTarget)) {
-        start_surf(id); // Calls start_surf without any condition
+        start_surf(id); 
     }
 
     if (TrieKeyExists(g_tStops, szTarget)) {
@@ -488,12 +466,10 @@ public fwdUse(ent, id) {
 }
 
 public start_surf(id) {
-    // Reset all checkpoint timer values for the player
     for (new i = 0; i < MAX_CHECKPOINTS; i++) {
         g_bCheckpointTimer[id][i] = 0.0;
     }
 
-    // Reset timer to zero or to the saved value from checkpoint
     if (g_bHasCheckpoint[id] && g_CheckpointCount[id] > 0) {
         new latestIndex = (g_CheckpointCount[id] - 1) % MAX_CHECKPOINTS;
         timer_time[id] = get_gametime() - g_bCheckpointTimer[id][latestIndex];

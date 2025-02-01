@@ -11,7 +11,7 @@ Hook
 Team Changer
 
 INSTALLATION
-(ensure Metamod and AMX Mod X are already installed on your server)
+(ensure Metamod and AMX Mod X are already installed on your game)
 1. Place BurgerSurf.amxx into the cstrike/addons/amxmodx/plugins/ directory.
 2. Open the plugins.ini file located at cstrike/addons/amxmodx/configs/.
 3. Add the line BurgerSurf at the end of the file.
@@ -28,7 +28,7 @@ say /setstart - Set the spawn position.
 say /start - Teleport to the spawn position.
 say /resetcounts - Reset checkpoint counts.
 
-Utility:
+Utilities:
 say /usp - Give a USP pistol.
 say /god - Toggle god mode.
 say /nc - Toggle noclip mode.
@@ -43,5 +43,5 @@ say /spec - Switch to Spectator team.
 PLANNED FEATURES
 Prestrafe speed shower
 Surf Metrics: % loss in ramp landings + mid-air strafe synchronization.
-Improve hook
+Add sound effects
 
